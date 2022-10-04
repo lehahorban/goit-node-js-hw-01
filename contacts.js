@@ -1,38 +1,69 @@
+const { nanoid } = require("nanoid")
+const fs = require("fs/promises")
+const path = require("path")
+
+const contactsPath = path.join(__dirname, "db/contacts.json")
+
+const changeContacts = async contacts => await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2))
 
 
-const contacts = require(__dirname)
-
-console.log(contacts)
-
-const invokeAction = async ({ action, id, name, email, phone }) => {
-    switch (action) {
-        case "getAll":
-            const allContacts = await contacts.listContacts()
-            console.log(allContacts);
-            break;
-        case "getById":
-            const oneContact = await contacts.getContactById(id)
-            console.log(oneContact)
-            break;
-        case "add":
-            const newContact = await contacts.addContact({ name, email, phone })
-            console.log(newContact)
-            break;
-         case "updateById":
-            const updateContact = await contacts.updateContact(id, {name, phone })
-            console.log(updateContact)
-            break;
-         case "removeById":
-            const removeContact = await contacts.removeContact(id)
-            console.log(removeContact)
-            break;
-        default:
-      console.warn("\x1B[31m Unknown action type!");
-    }
+const listContacts = async () => {
+    const result = await fs.readFile(contactsPath)
+    return JSON.parse(result)
 }
 
-// invokeAction({ action: "getAll"})
-// invokeAction({ action: "getById", id: "1"})
-// invokeAction({ action: "add", name: "Oleksii", email: "leha@gmail.com", phone: "(777) 914-3792"})
-// invokeAction({ action: "updateById", id: "MUD-_HUq9DqqpuzbTYMLS", name: "Leha", phone: "(555) 914-3792"})
-invokeAction({ action: "removeById", id: "l6tY_2hPOC6OGXE5pHdx5"})
+
+const getContactById = async (id) => {
+    const contacts = await listContacts();       
+    const contactsId = String(id)
+    const result = contacts.find(item => item.id === contactsId)
+    return result || null
+    
+}
+
+const addContact = async ({ name, email, phone }) => {
+     const contacts = await listContacts();  
+    const newContact = {
+        id: nanoid(),
+        name,
+        email,
+        phone
+    }
+
+    contacts.push(newContact)
+    await changeContacts(contacts)
+    return newContact
+    
+}
+
+const updateContact = async (id, data)=> {
+    const contacts = await listContacts()
+    const contactsId = String(id)
+    const index = contacts.findIndex(item => item.id === contactsId)
+    if (index === -1) {
+        return null
+    }
+    contacts[index] = { id, ...data }
+    await changeContacts(contacts)
+    return contacts[index]
+}
+
+const removeContact = async (id) => {
+    const contacts = await listContacts()
+    const contactsId = String(id)
+    const index = contacts.findIndex(item => item.id === contactsId)
+    if (index === -1) {
+        return null
+    }
+    const [result] = contacts.splice(index, 1)
+    await changeContacts(contacts)
+    return result
+}
+
+module.exports = {
+    listContacts,
+    getContactById,
+    addContact,
+    updateContact, 
+    removeContact
+}

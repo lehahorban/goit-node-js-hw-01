@@ -1,66 +1,54 @@
-const { nanoid } = require("nanoid")
-const fs = require("fs/promises")
-const path = require("path")
+const yargs = require("yargs")
+const {hideBin} = require("yargs/helpers")
+// const contacts = require(__dirname)
 
-const contactsPath = path.join(__dirname, "db/contacts.json")
+const {
+  listContacts,
+  getContactById,
+  addContact,
+  updateContact,
+  removeContact,
+} = require("./contacts");
 
-const changeContacts = async contacts => await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2))
-
-
-const listContacts = async () => {
-    const result = await fs.readFile(contactsPath)
-    return JSON.parse(result)
-}
-
-
-const getContactById = async (contactId) => {
-    const contacts = await listContacts();    
-    const result = contacts.find(item => item.id === contactId)
-    return result || null
-    
-}
-
-const addContact = async ({ name, email, phone }) => {
-     const contacts = await listContacts();  
-    const newContact = {
-        id: nanoid(),
-        name,
-        email,
-        phone
+const invokeAction = async ({ action, id, name, email, phone }) => {
+    switch (action) {
+        case "list":
+            const allContacts = await listContacts()
+            console.table(allContacts);
+            break;
+        case "get":
+            const oneContact = await getContactById(id)
+            console.log(oneContact)
+            break;
+        case "add":
+            const newContact = await addContact({ name, email, phone })
+            console.log(newContact)
+            break;
+         case "update":
+            const upContact = await updateContact(id, {name, phone })
+            console.log(upContact)
+            break;
+         case "remove":
+            const deleteContact = await removeContact(id)
+            console.log(deleteContact)
+            break;
+        default:
+      console.warn("\x1B[31m Unknown action type!");
     }
-
-    contacts.push(newContact)
-    await changeContacts(contacts)
-    return newContact
-    
 }
 
-const updateContact = async (id, data)=> {
-    const contacts = await listContacts()
-    const index = contacts.findIndex(item => item.id === id)
-    if (index === -1) {
-        return null
-    }
-    contacts[index] = { id, ...data }
-    await changeContacts(contacts)
-    return contacts[index]
-}
+// invokeAction({ action: "list"})
+// invokeAction({ action: "get", id: "1"})
+// invokeAction({ action: "add", name: "Oleksii", email: "leha@gmail.com", phone: "(777) 914-3792"})
+// invokeAction({ action: "update", id: "MUD-_HUq9DqqpuzbTYMLS", name: "Leha", phone: "(555) 914-3792"})
+// invokeAction({ action: "remove", id: "l6tY_2hPOC6OGXE5pHdx5"})
 
-const removeContact = async (id) => {
-    const contacts = await listContacts()
-    const index = contacts.findIndex(item => item.id === id)
-    if (index === -1) {
-        return null
-    }
-    const [result] = contacts.splice(index, 1)
-    await changeContacts(contacts)
-    return result
-}
+// const actionIndex = process.argv.indexOf("--action")
+// if (actionIndex !== -1) {
+//     const action = process.argv[actionIndex + 1]
+//    invokeAction({action})
+// }
 
-module.exports = {
-    listContacts,
-    getContactById,
-    addContact,
-    updateContact, 
-    removeContact
-}
+const arr = hideBin(process.argv)
+const { argv } = yargs(arr)
+invokeAction(argv)
